@@ -4,6 +4,9 @@ import numpy
 from threading import Thread
 import time
 import sys
+import re
+
+
 UDP_IP = "127.0.0.1"
 # UDP_IP = "127.0.0.1"
 UDP_PORT = 10021
@@ -21,6 +24,13 @@ class Subscriber(Thread):
             udp_socket.sendto(REFRESH_MESSAGE, (UDP_IP, UDP_PORT))
 
 if __name__ == '__main__':
+    args = sys.argv
+    ip_address_regex = re.compile('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\Z')
+    try:
+        if ip_address_regex.match(args[1]):
+            UDP_IP = args[1]
+    except IndexError:
+        None
     udp_socket = socket.socket(socket.AF_INET,
     socket.SOCK_DGRAM)
     udp_socket.sendto(MESSAGE, (UDP_IP, UDP_PORT))
