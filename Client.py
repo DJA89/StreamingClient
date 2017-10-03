@@ -50,21 +50,17 @@ if __name__ == '__main__':
     else:
         tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         tcp_socket.connect((IP, TCP_PORT))
-        regex = re.compile('inicio')
+
         bufferstring = ''
-        while True:
-            stringTerminado = ''
-            while stringTerminado == '':
-                stringData = tcp_socket.recv(4096)
-                match = regex.search(stringData)
-                if match:
-                    stringTerminado = bufferstring + stringData[:match.start()]
-                    bufferstring = stringData[match.end():]
-                else:
-                    bufferstring += stringData
-            stringTerminado = re.sub('sustituyendo_palabra','inicio', stringTerminado)
-            data = numpy.fromstring(stringTerminado, dtype='uint8')
-            decimg = cv2.imdecode(data,1)
-            cv2.imshow('CLIENTE TCP',decimg)
+        while True:            
+            bufferstring = bufferstring + tcp_socket.recv(4096)
+            pieces = re.split('inicio', bufferstring)
+            if len(pieces) > 1:
+                for frame in pieces[:-1]:
+                    cleanframe = re.sub('sustituyendo_palabra','inicio', frame)
+                    data = numpy.fromstring(cleanframe, dtype='uint8')
+                    decimg=cv2.imdecode(data,1)
+                    cv2.imshow('CLIENTE TCP',decimg)        
+            bufferstring = pieces[-1]            
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
