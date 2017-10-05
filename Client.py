@@ -31,7 +31,7 @@ if __name__ == '__main__':
     for k in args[1:2]:
         if ip_address_regex.match(k):
             IP = k
-        elif k == 'UDP':
+        elif k.lower() == 'udp':
             protocolUDP = True
 
     if protocolUDP:
@@ -52,7 +52,7 @@ if __name__ == '__main__':
         tcp_socket.connect((IP, TCP_PORT))
 
         bufferstring = ''
-        while True:            
+        while True:
             bufferstring = bufferstring + tcp_socket.recv(4096)
             pieces = re.split('inicio', bufferstring)
             if len(pieces) > 1:
@@ -60,7 +60,7 @@ if __name__ == '__main__':
                     cleanframe = re.sub('sustituyendo_palabra','inicio', frame)
                     data = numpy.fromstring(cleanframe, dtype='uint8')
                     decimg=cv2.imdecode(data,1)
-                    cv2.imshow('CLIENTE TCP',decimg)        
-            bufferstring = pieces[-1]            
+                    cv2.imshow('CLIENTE TCP',decimg)
+            bufferstring = pieces[-1]
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
