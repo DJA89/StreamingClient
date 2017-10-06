@@ -10,7 +10,7 @@ import signal
 
 
 
-IP = "127.0.0.1"
+IP = '127.0.0.1'
 # UDP_IP = "127.0.0.1"
 UDP_PORT = 10021
 TCP_PORT = 2100
@@ -54,16 +54,26 @@ if __name__ == '__main__':
         mySubscriber = Subscriber(udp_socket)
         mySubscriber.start()
         def finish_it_up(a,b):
-            udp_socket.close()
             mySubscriber.stop()
+            udp_socket.close()
             mySubscriber.join()
         signal.signal(signal.SIGINT, finish_it_up)
+        last_sequence_number = 0
         while True:
             data, address = udp_socket.recvfrom(65536)
-            data = numpy.fromstring(data, dtype='uint8')
-            decimg = cv2.imdecode(data, 1)
-            cv2.imshow('CLIENTE UDP',decimg)
+            current_sequence_number = int(data[0:6])
+            # Dump slower / past packets
+            if (last_sequence_number < current_sequence_number):
+                last_sequence_number = current_sequence_number
+                frame_string = data[6:]
+                frame_matrix = numpy.fromstring(frame_string, dtype='uint8')
+                decoded_image = cv2.imdecode(frame_matrix, 1)
+                cv2.imshow('CLIENTE UDP', decoded_image)
+            else:
+                print 'Frame skipped: %s' % current_sequence_number
+            # Quit command capture
             if cv2.waitKey(1) & 0xFF == ord('q'):
+                finish_it_up(None, None)
                 break
     else:
         tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
