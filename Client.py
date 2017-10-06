@@ -42,7 +42,7 @@ if __name__ == '__main__':
     args = sys.argv
     ip_address_regex = re.compile('\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\Z')
     protocolUDP = False
-    for k in args[1:2]:
+    for k in args[1:]:
         if ip_address_regex.match(k):
             IP = k
         elif k.lower() == 'udp':
