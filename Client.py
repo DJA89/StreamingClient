@@ -5,6 +5,9 @@ from threading import Thread
 import time
 import sys
 import re
+import threading
+import signal
+
 
 
 IP = "127.0.0.1"
@@ -18,11 +21,22 @@ class Subscriber(Thread):
     def __init__(self, udp_socket):
         Thread.__init__(self)
         self.udp_socket = udp_socket
+        self._stop_event = threading.Event()
 
     def run(self):
+        tiempo = 0
         while True:
-            time.sleep(30)
-            udp_socket.sendto(REFRESH_MESSAGE, (IP, UDP_PORT))
+            time.sleep(1)
+            tiempo = tiempo + 1
+            if self._stop_event.is_set():
+                self.udp_socket.close()
+                break
+            elif tiempo == 30:
+                tiempo = 0
+                udp_socket.sendto(REFRESH_MESSAGE, (IP, UDP_PORT))
+
+    def stop(self):
+        self._stop_event.set()
 
 if __name__ == '__main__':
     args = sys.argv
@@ -38,8 +52,12 @@ if __name__ == '__main__':
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_socket.sendto(MESSAGE, (IP, UDP_PORT))
         mySubscriber = Subscriber(udp_socket)
-        mySubscriber.daemon = True
         mySubscriber.start()
+        def finish_it_up(a,b):
+            udp_socket.close()
+            mySubscriber.stop()
+            mySubscriber.join()
+        signal.signal(signal.SIGINT, finish_it_up)
         while True:
             data, address = udp_socket.recvfrom(65536)
             data = numpy.fromstring(data, dtype='uint8')
@@ -52,7 +70,7 @@ if __name__ == '__main__':
         tcp_socket.connect((IP, TCP_PORT))
 
         bufferstring = ''
-        while True:            
+        while True:
             bufferstring = bufferstring + tcp_socket.recv(4096)
             pieces = re.split('inicio', bufferstring)
             if len(pieces) > 1:
@@ -60,7 +78,9 @@ if __name__ == '__main__':
                     cleanframe = re.sub('sustituyendo_palabra','inicio', frame)
                     data = numpy.fromstring(cleanframe, dtype='uint8')
                     decimg=cv2.imdecode(data,1)
-                    cv2.imshow('CLIENTE TCP',decimg)        
-            bufferstring = pieces[-1]            
+                    cv2.imshow('CLIENTE TCP',decimg)
+            bufferstring = pieces[-1]
             if cv2.waitKey(1) & 0xFF == ord('q'):
+                tcp_socket.shutdown(socket.SHUT_RDWR)
+                tcp_socket.close()
                 break
