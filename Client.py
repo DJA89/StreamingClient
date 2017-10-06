@@ -45,7 +45,7 @@ if __name__ == '__main__':
     for k in args[1:2]:
         if ip_address_regex.match(k):
             IP = k
-        elif k == 'UDP':
+        elif k.lower() == 'udp':
             protocolUDP = True
 
     if protocolUDP:
