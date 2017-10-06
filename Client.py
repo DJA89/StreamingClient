@@ -58,19 +58,19 @@ if __name__ == '__main__':
             udp_socket.close()
             mySubscriber.join()
         signal.signal(signal.SIGINT, finish_it_up)
-        last_stamp = None
+        last_sequence_number = 0
         while True:
             data, address = udp_socket.recvfrom(65536)
-            frame_stamp = int(data[0:13])
+            current_sequence_number = int(data[0:6])
             # Dump slower / past packets
-            if (not last_stamp or (last_stamp < frame_stamp)):
-                last_stamp = frame_stamp
-                frame_string = data[13:]
+            if (last_sequence_number < current_sequence_number):
+                last_sequence_number = current_sequence_number
+                frame_string = data[6:]
                 frame_matrix = numpy.fromstring(frame_string, dtype='uint8')
                 decoded_image = cv2.imdecode(frame_matrix, 1)
                 cv2.imshow('CLIENTE UDP', decoded_image)
-            elif (last_stamp):
-                print 'Frame skipped: %s' % frame_stamp
+            else:
+                print 'Frame skipped: %s' % current_sequence_number
             # Quit command capture
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 finish_it_up(None, None)
