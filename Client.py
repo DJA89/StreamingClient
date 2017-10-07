@@ -51,6 +51,7 @@ if __name__ == '__main__':
     if protocolUDP:
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_socket.sendto(MESSAGE, (IP, UDP_PORT))
+        udp_socket.settimeout(5)
         mySubscriber = Subscriber(udp_socket)
         mySubscriber.start()
         def finish_it_up(a,b):
@@ -60,21 +61,39 @@ if __name__ == '__main__':
         signal.signal(signal.SIGINT, finish_it_up)
         last_sequence_number = 0
         while True:
-            data, address = udp_socket.recvfrom(65536)
-            current_sequence_number = int(data[0:6])
-            # Dump slower / past packets
-            if (last_sequence_number < current_sequence_number):
-                last_sequence_number = current_sequence_number
-                frame_string = data[6:]
-                frame_matrix = numpy.fromstring(frame_string, dtype='uint8')
-                decoded_image = cv2.imdecode(frame_matrix, 1)
-                cv2.imshow('CLIENTE UDP', decoded_image)
-            else:
-                print 'Frame skipped: %s' % current_sequence_number
-            # Quit command capture
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                finish_it_up(None, None)
-                break
+            try:
+                data, address = udp_socket.recvfrom(65536)
+                current_sequence_number = int(data[0:6])
+                # Dump slower / past packets
+                if (last_sequence_number < current_sequence_number):
+                    last_sequence_number = current_sequence_number
+                    frame_string = data[6:]
+                    frame_matrix = numpy.fromstring(frame_string, dtype='uint8')
+                    decoded_image = cv2.imdecode(frame_matrix, 1)
+                    cv2.imshow('CLIENTE UDP', decoded_image)
+                else:
+                    print 'Frame skipped: %s' % current_sequence_number
+                # Quit command capture
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    finish_it_up(None, None)
+                    break
+            except socket.timeout:
+                if last_sequence_number == 0:
+                    print >> sys.stderr, 'No se ha podido conectar al servidor, reintentando...'
+                else:
+                    print >> sys.stderr, 'Conexion perdida, reintentando...'
+                try:
+                    udp_socket.sendto(MESSAGE, (IP, UDP_PORT))
+                    data, address = udp_socket.recvfrom(65536)
+                    last_sequence_number = 1
+                except socket.timeout:
+                    if last_sequence_number == 0:
+                        print >> sys.stderr, 'Reintento fallido, finalizando programa'
+                    else:
+                        print >> sys.stderr, 'Conexion perdida, finalizando programa'
+                    finish_it_up(None, None)
+                    break
+
     else:
         tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         tcp_socket.connect((IP, TCP_PORT))
