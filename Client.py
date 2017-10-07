@@ -60,7 +60,7 @@ if __name__ == '__main__':
     if protocolUDP:
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_socket.sendto(MESSAGE, (IP, UDP_PORT))
-        udp_socket.settimeout(5)
+        udp_socket.settimeout(2)
         mySubscriber = Subscriber(udp_socket)
         mySubscriber.start()
         def finish_it_up(a,b):
@@ -118,12 +118,9 @@ if __name__ == '__main__':
             ending_time = datetime.now()
             try:
                 data = ''
-                print 'antes de esperar'
                 while (datetime.now() - ending_time < timedelta(seconds = 5)):
                     data = tcp_socket.recv(4096)
-                print 'ya espere'
             except:
-                print 'se acabo'
                 None
             tcp_socket.close()
         signal.signal(signal.SIGINT, finish_it_up)
