@@ -109,7 +109,6 @@ if __name__ == '__main__':
     else:
         tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         tcp_socket.connect((IP, TCP_PORT))
-
         bufferstring = ''
         def finish_it_up(a,b):
             kil.kill = True
@@ -142,3 +141,4 @@ if __name__ == '__main__':
             bufferstring = pieces[-1]
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 finish_it_up(None, None)
+                break
