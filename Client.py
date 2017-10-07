@@ -7,6 +7,7 @@ import sys
 import re
 import threading
 import signal
+from datetime import datetime, timedelta
 
 
 
@@ -16,6 +17,13 @@ UDP_PORT = 10021
 TCP_PORT = 2100
 MESSAGE = "Hello, World!"
 REFRESH_MESSAGE = "Refresh"
+
+class Killing:
+    def __init__(self):
+        self.kill = False
+
+    def set_kill():
+        self.kill = True
 
 class Subscriber(Thread):
     def __init__(self, udp_socket):
@@ -47,6 +55,7 @@ if __name__ == '__main__':
             IP = k
         elif k.lower() == 'udp':
             protocolUDP = True
+    kil = Killing()
 
     if protocolUDP:
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -58,9 +67,12 @@ if __name__ == '__main__':
             mySubscriber.stop()
             udp_socket.close()
             mySubscriber.join()
+            kil.kill = True
         signal.signal(signal.SIGINT, finish_it_up)
         last_sequence_number = 0
         while True:
+            if kil.kill:
+                break
             try:
                 data, address = udp_socket.recvfrom(65536)
                 current_sequence_number = int(data[0:6])
@@ -99,8 +111,30 @@ if __name__ == '__main__':
         tcp_socket.connect((IP, TCP_PORT))
 
         bufferstring = ''
+        def finish_it_up(a,b):
+            kil.kill = True
+            tcp_socket.shutdown(socket.SHUT_WR)
+            tcp_socket.settimeout(1)
+            ending_time = datetime.now()
+            try:
+                data = ''
+                print 'antes de esperar'
+                while (datetime.now() - ending_time < timedelta(seconds = 5)):
+                    data = tcp_socket.recv(4096)
+                print 'ya espere'
+            except:
+                print 'se acabo'
+                None
+            tcp_socket.close()
+        signal.signal(signal.SIGINT, finish_it_up)
         while True:
-            bufferstring = bufferstring + tcp_socket.recv(4096)
+            if kil.kill:
+                break
+            data = tcp_socket.recv(4096)
+            if data == '':
+                tcp_socket.close()
+                break
+            bufferstring = bufferstring + data
             pieces = re.split('inicio', bufferstring)
             if len(pieces) > 1:
                 for frame in pieces[:-1]:
@@ -110,6 +144,4 @@ if __name__ == '__main__':
                     cv2.imshow('CLIENTE TCP',decimg)
             bufferstring = pieces[-1]
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                tcp_socket.shutdown(socket.SHUT_RDWR)
-                tcp_socket.close()
-                break
+                finish_it_up(None, None)
