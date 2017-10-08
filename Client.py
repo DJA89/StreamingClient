@@ -18,13 +18,6 @@ TCP_PORT = 2100
 MESSAGE = "Hello, World!"
 REFRESH_MESSAGE = "Refresh"
 
-class Killing:
-    def __init__(self):
-        self.kill = False
-
-    def set_kill():
-        self.kill = True
-
 class Subscriber(Thread):
     def __init__(self, udp_socket):
         Thread.__init__(self)
@@ -55,7 +48,6 @@ if __name__ == '__main__':
             IP = k
         elif k.lower() == 'udp':
             protocolUDP = True
-    kil = Killing()
 
     if protocolUDP:
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -67,12 +59,10 @@ if __name__ == '__main__':
             mySubscriber.stop()
             udp_socket.close()
             mySubscriber.join()
-            kil.kill = True
+            sys.exit(0)
         signal.signal(signal.SIGINT, finish_it_up)
         last_sequence_number = 0
         while True:
-            if kil.kill:
-                break
             try:
                 data, address = udp_socket.recvfrom(65536)
                 current_sequence_number = int(data[0:6])
@@ -88,7 +78,6 @@ if __name__ == '__main__':
                 # Quit command capture
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     finish_it_up(None, None)
-                    break
             except socket.timeout:
                 if last_sequence_number == 0:
                     print >> sys.stderr, 'No se ha podido conectar al servidor, reintentando...'
@@ -112,7 +101,6 @@ if __name__ == '__main__':
 
         bufferstring = ''
         def finish_it_up(a,b):
-            kil.kill = True
             tcp_socket.shutdown(socket.SHUT_WR)
             tcp_socket.settimeout(1)
             ending_time = datetime.now()
@@ -123,10 +111,9 @@ if __name__ == '__main__':
             except:
                 None
             tcp_socket.close()
+            sys.exit(0)
         signal.signal(signal.SIGINT, finish_it_up)
         while True:
-            if kil.kill:
-                break
             data = tcp_socket.recv(4096)
             if data == '':
                 tcp_socket.close()
